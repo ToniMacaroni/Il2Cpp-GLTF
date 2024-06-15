@@ -284,7 +284,7 @@ namespace UnityGLTF
 				{
 					await YieldOnTimeoutAndThrowOnLowMemory();
 
-					var memoryStreamData = Il2cppUtils.NewNativeArray<byte>(memoryStream.ToArray(), Allocator.TempJob);
+					var memoryStreamData = Il2cppUtils.NewNativeArray(memoryStream.ToArray(), Allocator.TempJob);
 					texture = await CheckMimeTypeAndLoadImage(image, texture, memoryStreamData, markGpuOnly, isLinear);
 					memoryStreamData.Dispose();
 				}
@@ -302,7 +302,7 @@ namespace UnityGLTF
 				stream.Read(buffer, 0, (int)stream.Length);
 				await YieldOnTimeoutAndThrowOnLowMemory();
 
-				NativeArray<byte> bufferNative = Il2cppUtils.NewNativeArray<byte>(buffer, Allocator.TempJob);
+				NativeArray<byte> bufferNative = Il2cppUtils.NewNativeArray(buffer, Allocator.TempJob);
 				texture = await CheckMimeTypeAndLoadImage(image, texture, bufferNative, markGpuOnly, isLinear);
 				bufferNative.Dispose();
 			}

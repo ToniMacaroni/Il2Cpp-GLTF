@@ -231,11 +231,6 @@ namespace UnityGLTF
 		/// </summary>
 		public ColliderType Collider { get; set; }
 
-		/// <summary>
-		/// Override for the shader to use on created materials
-		/// </summary>
-		public string CustomShaderName { get; set; }
-
 		public GameObject LastLoadedScene
 		{
 			get { return _lastLoadedScene; }
@@ -372,7 +367,7 @@ namespace UnityGLTF
 				}
 			}			
 			
-			var newNativeBuffer = Il2cppUtils.NewNativeArray<byte>(buf, Allocator.Persistent);
+			var newNativeBuffer = Il2cppUtils.NewNativeArray(buf, Allocator.Persistent);
 			
 			_nativeBuffers.Add(stream,newNativeBuffer);
 			

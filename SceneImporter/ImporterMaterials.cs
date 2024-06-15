@@ -40,9 +40,9 @@ namespace UnityGLTF
 			{
 				GLTFSceneImporter.Debug.Log(LogType.Warning, $"KHR_materials_pbrSpecularGlossiness has been deprecated, material {def.Name} may not look correct. Use `gltf-transform metalrough` or other tools to convert to PBR. (File: {_gltfFileName})");
 
-				if (!string.IsNullOrEmpty(CustomShaderName))
+				if (!string.IsNullOrEmpty(Context.Settings.CustomShaderName))
 				{
-					mapper = new SpecGlossMap(CustomShaderName, MaximumLod);
+					mapper = new SpecGlossMap(Context.Settings.CustomShaderName, MaximumLod);
 				}
 				else
 				{
@@ -56,9 +56,9 @@ namespace UnityGLTF
 			}
 			else if (_gltfRoot.ExtensionsUsed != null && _gltfRoot.ExtensionsUsed.Contains(unlitExtName) && def.Extensions != null && def.Extensions.ContainsKey(unlitExtName))
 			{
-				if (!string.IsNullOrEmpty(CustomShaderName))
+				if (!string.IsNullOrEmpty(Context.Settings.CustomShaderName))
 				{
-					mapper = new UnlitMap(CustomShaderName, null, MaximumLod);
+					mapper = new UnlitMap(Context.Settings.CustomShaderName, null, MaximumLod);
 				}
 				else
 				{
@@ -76,8 +76,15 @@ namespace UnityGLTF
 			}
 			else
 			{
-				//mapper = new SonsUberMap(MaximumLod);
-				mapper = new SonsUberMap("HDRP/Lit", MaximumLod);
+				if (!string.IsNullOrEmpty(Context.Settings.CustomShaderName))
+				{
+					mapper = (IUniformMap)Activator.CreateInstance(Context.Settings.DefaultShaderMap, Context.Settings.CustomShaderName, MaximumLod);
+				}
+				else
+				{
+					mapper = (IUniformMap)Activator.CreateInstance(Context.Settings.DefaultShaderMap, MaximumLod);
+				}
+				//mapper = new SonsUberMap("HDRP/Lit", MaximumLod);
 // 				if (!string.IsNullOrEmpty(CustomShaderName))
 // 				{
 // 					mapper = new MetalRoughMap(CustomShaderName, MaximumLod);

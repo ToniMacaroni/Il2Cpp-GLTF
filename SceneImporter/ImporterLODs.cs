@@ -23,9 +23,9 @@ namespace UnityGLTF
 			if (_gltfRoot.ExtensionsUsed != null
 			    && _gltfRoot.ExtensionsUsed.Contains(msft_LODExtName)
 			    && node.Extensions != null
-			    && node.Extensions.ContainsKey(msft_LODExtName))
+			    && node.Extensions.TryGetValue(msft_LODExtName, out var extension))
 			{
-				lodsExtension = node.Extensions[msft_LODExtName] as MSFT_LODExtension;
+				lodsExtension = extension as MSFT_LODExtension;
 				if (lodsExtension != null && lodsExtension.NodeIds.Count > 0)
 				{
 					int lodCount = lodsExtension.NodeIds.Count + 1;

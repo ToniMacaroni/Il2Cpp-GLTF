@@ -10,14 +10,8 @@ namespace UnityGLTF.Plugins
 {
 	public class GLTFImportContext
 	{
-#if UNITY_EDITOR
-		public readonly AssetImportContext AssetContext;
-		public string FilePath => AssetContext?.assetPath;
-		public readonly AssetImporter SourceImporter;
-		public float ImportScaleFactor = 1.0f;
-#endif
-
 		public readonly List<GLTFImportPluginContext> Plugins;
+		public readonly GLTFSettings Settings;
 
 		public GLTFSceneImporter SceneImporter;
 		public GLTFRoot Root => SceneImporter?.Root;
@@ -37,19 +31,10 @@ namespace UnityGLTF.Plugins
 			return plugins;
 		}
 		
-#if UNITY_EDITOR
-		internal GLTFImportContext(AssetImportContext assetImportContext, GLTFSettings settings)
-		{
-			AssetContext = assetImportContext;
-			if (assetImportContext != null)
-				SourceImporter = AssetImporter.GetAtPath(assetImportContext.assetPath);
-			
-			Plugins = InitializePlugins(settings);
-		}
-#endif
 		internal GLTFImportContext(GLTFSettings settings)
 		{
 			Plugins = InitializePlugins(settings);
+			Settings = settings;
 		}
 
 		public bool TryGetPlugin<T>(out GLTFImportPluginContext o) where T: GLTFImportPluginContext

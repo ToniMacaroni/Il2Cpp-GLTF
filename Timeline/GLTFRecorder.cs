@@ -372,9 +372,10 @@ namespace UnityGLTF.Timeline
 			isRecording = false;
 			Debug.Log("Gltf Recording saved. Tracks: " + data.Count + ", Total Keyframes: " + data.Sum(x => x.Value.tracks.Sum(y => y.values.Count())));
 
-			if (!settings)
+			if (settings == null)
 			{
-				var adjustedSettings = Object.Instantiate(GLTFSettings.GetOrCreateSettings());
+				//var adjustedSettings = Object.Instantiate(GLTFSettings.GetOrCreateSettings());
+				var adjustedSettings = GLTFSettings.GetOrCreateSettings();
 				adjustedSettings.ExportDisabledGameObjects = true;
 				adjustedSettings.ExportAnimations = false;
 				settings = adjustedSettings;

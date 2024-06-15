@@ -1067,7 +1067,8 @@ namespace GLTF.Schema
 			uint totalByteOffset = ByteOffset + offset;
 
 			GetTypeDetails(ComponentType, out uint componentSize, out float maxValue);
-			var bufferPointer = NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr<byte>(bufferViewData);
+			//var bufferPointer = NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr<byte>(bufferViewData);
+			var bufferPointer = bufferViewData.GetUnsafePtrAlt();
 
 			if (!normalizeIntValues) maxValue = 1;
 

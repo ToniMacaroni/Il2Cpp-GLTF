@@ -35,7 +35,7 @@ namespace UnityGLTF
 
 		public ExportContext(GLTFSettings settings)
 		{
-			if (!settings) settings = GLTFSettings.GetOrCreateSettings();
+			if (settings == null) settings = GLTFSettings.GetOrCreateSettings();
 			if (settings.UseMainCameraVisibility)
 				ExportLayers = Camera.main ? Camera.main.cullingMask : -1;
 			this.settings = settings;

@@ -21,4 +21,22 @@ public class SonsUberMap : MetalRoughMap
         get => _material.GetTexture("_NormalMap");
         set => _material.SetTexture("_NormalMap", value);
     }
+
+    public override double NormalTexScale
+    {
+        get => _material.GetFloat("_NormalScale");
+        set => _material.SetFloat("_NormalScale", (float)value);
+    }
+
+    public override Texture OcclusionTexture
+    {
+        get => null;
+        set {}
+    }
+
+    public override double OcclusionTexStrength
+    {
+        get => 1;
+        set {}
+    }
 }

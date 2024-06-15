@@ -4,23 +4,18 @@ using System.IO;
 using System.Collections.Generic;
 using System;
 using System.Reflection;
-
-
+using Il2CppInterop.Runtime.Injection;
 using RedLoader;
 using UnityEngine;
+using Color = System.Drawing.Color;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 namespace UnityGLTF
 {
-	[RegisterTypeInIl2Cpp]
-    public class GLTFSettings : ScriptableObject
+    public class GLTFSettings// : ScriptableObject
     {
-	    private const string k_PreferencesPrefix = "UnityGLTF_Preferences_";
-	    private const string k_SettingsFileName = "UnityGLTFSettings.asset";
-	    public const string k_RuntimeAndEditorSettingsPath = "Assets/Resources/" + k_SettingsFileName;
-
 	    [Flags]
 	    public enum BlendShapeExportPropertyFlags
 	    {
@@ -33,10 +28,10 @@ namespace UnityGLTF
 
 	    // Plugins
 	    // [SerializeField, HideInInspector]
-	    public List<GLTFImportPlugin> ImportPlugins = new List<GLTFImportPlugin>();
+	    public List<GLTFImportPlugin> ImportPlugins = new();
 	    
 	    // [SerializeField, HideInInspector]
-	    public List<GLTFExportPlugin> ExportPlugins = new List<GLTFExportPlugin>();
+	    public List<GLTFExportPlugin> ExportPlugins = new();
 	    
 	    // [Header("Export Settings")]
 		// 
@@ -91,6 +86,13 @@ namespace UnityGLTF
 		// [Header("Export Cache")]
 		// // [Tooltip("When enabled textures will be cached to disc for faster export times.\n(The cache size is reduced to stay below 1024 MB when the Editor quits)")]
 		public bool UseCaching = true;
+		
+		/// <summary>
+		/// Override for the shader to use on created materials
+		/// </summary>
+		public string CustomShaderName { get; set; }
+
+		public Type DefaultShaderMap = typeof(SonsUberMap);
 
 		public bool ExportNames { get => exportNames; set  => exportNames = value; }
 		public bool ExportFullPath { get => exportFullPath; set => exportFullPath = value; }
@@ -120,9 +122,6 @@ namespace UnityGLTF
 				
 				if (ExportPlugins == null) ExportPlugins = new List<GLTFExportPlugin>();
 				ExportPlugins.Add(GLTFPlugin.Create<AnimationPointerExport>());
-#if UNITY_EDITOR
-				EditorUtility.SetDirty(this);
-#endif
 			}
 		}
 		public bool UniqueAnimationNames { get => uniqueAnimationNames; set => uniqueAnimationNames = value; }
@@ -130,131 +129,77 @@ namespace UnityGLTF
 		public BlendShapeExportPropertyFlags BlendShapeExportProperties { get => blendShapeExportProperties; set => blendShapeExportProperties = value; }
 		public bool BakeSkinnedMeshes { get => bakeSkinnedMeshes; set => bakeSkinnedMeshes = value; }
 
-
-#if UNITY_EDITOR
-		private const string SaveFolderPathPref = k_PreferencesPrefix + "SaveFolderPath";
-		public string SaveFolderPath
-		{
-			get => EditorPrefs.GetString(SaveFolderPathPref, null);
-			set => EditorPrefs.SetString(SaveFolderPathPref, value);
-		}
-#endif
-	    
-	    public static GLTFSettings GetOrCreateSettings()
+		public static GLTFSettings GetOrCreateSettings()
 	    {
-		    #if UNITY_EDITOR
-		    var hadSettings = true;
-		    #endif
-		    if (!TryGetSettings(out var settings))
-		    {
-#if UNITY_EDITOR
-			    hadSettings = false;
-			    settings = ScriptableObject.CreateInstance<GLTFSettings>();
-			    settings.name = Path.GetFileNameWithoutExtension(k_RuntimeAndEditorSettingsPath);
-			    var dir = Path.GetDirectoryName(k_RuntimeAndEditorSettingsPath);
-			    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir!);
+		    if(cachedSettings != null) 
+			    return cachedSettings;
 
-			    // we can save it here, but we can't call AssetDatabase.CreateAsset as the importer will complain
-			    UnityEditorInternal.InternalEditorUtility.SaveToSerializedFileAndForget(new UnityEngine.Object[] { settings }, k_RuntimeAndEditorSettingsPath, true);
-
-			    // so after import, we have to connect the cachedSettings again
-			    EditorApplication.delayCall += () =>
-			    {
-				    // Debug.Log("Deferred settings connection");
-				    AssetDatabase.Refresh();
-				    cachedSettings = null;
-				    TryGetSettings(out var newSettings);
-				    cachedSettings = newSettings;
-			    };
-#else
-				settings = ScriptableObject.CreateInstance<GLTFSettings>();
-#endif
-		    }
-		    
-		    RegisterPlugins(settings);
-		    
-#if UNITY_EDITOR		    
-		    // save again with plugins attached, if needed - the asset was only created in memory
-		    if (!hadSettings && !AssetDatabase.Contains(settings))
-				UnityEditorInternal.InternalEditorUtility.SaveToSerializedFileAndForget(new UnityEngine.Object[] { settings }, k_RuntimeAndEditorSettingsPath, true);
-#endif
-		    cachedSettings = settings;
-		    return settings;
+		    cachedSettings = GetNewSettings();
+		    return cachedSettings;
 	    }
 
-	    public static GLTFSettings GetDefaultSettings()
+	    public static GLTFSettings GetNewSettings()
 	    {
-			var freshSettings = CreateInstance<GLTFSettings>();
+			var freshSettings = new GLTFSettings();
 		    RegisterPlugins(freshSettings);
 		    return freshSettings;
 	    }
 
-	    public static bool TryGetSettings(out GLTFSettings settings)
-	    {
-		    settings = cachedSettings;
-		    if (settings)
-			    return true;
-
-		    settings = Resources.Load<GLTFSettings>(Path.GetFileNameWithoutExtension(k_SettingsFileName));
-
-#if UNITY_EDITOR
-		    if (!settings)
-		    {
-			    settings = AssetDatabase.LoadAssetAtPath<GLTFSettings>(k_RuntimeAndEditorSettingsPath);
-		    }
-		    if (!settings)
-		    {
-			    var allSettings = AssetDatabase.FindAssets("t:GLTFSettings");
-			    if (allSettings.Length > 0)
-			    {
-				    settings = AssetDatabase.LoadAssetAtPath<GLTFSettings>(AssetDatabase.GUIDToAssetPath(allSettings[0]));
-			    }
-		    }
-		    cachedSettings = settings;
-
-		    return settings;
-#else
-			return settings;
-#endif
-	    }
-
-	    //[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-	    private static void ClearStatics()
-	    {
-		    cachedSettings = null;
-		    settingsWherePluginsAreRegistered.Clear();
-	    }
-	    
 	    private static GLTFSettings cachedSettings;
 	    private static List<GLTFSettings> settingsWherePluginsAreRegistered = new List<GLTFSettings>();
+
+	    private static List<Type> PluginTypes = new()
+	    {
+		    typeof(AnimationPointerExport),
+		    typeof(DracoImport),
+		    typeof(GPUInstancingImport),
+		    typeof(Ktx2Import),
+		    typeof(LightsPunctualExport),
+		    typeof(LightsPunctualImport),
+		    typeof(LodsExport),
+		    typeof(LodsImport),
+		    typeof(MaterialExtensionsExport),
+		    typeof(MaterialExtensionsImport),
+		    typeof(MeshoptImport),
+		    typeof(TextureTransformExport),
+		    typeof(TextureTransformImport),
+		    typeof(UnlitMaterialsExport),
+		    typeof(UnlitMaterialsImport),
+		    typeof(BakeParticleSystem),
+		    typeof(MaterialVariantsPlugin),
+		    typeof(TextMeshGameObjectExport),
+	    };
+
+	    public static void RegisterPlugin<T>() where T : GLTFPlugin
+	    {
+		    PluginTypes.Add(typeof(T));
+	    }
 	    
+	    public static void UnregisterPlugin<T>() where T : GLTFPlugin
+	    {
+		    PluginTypes.Remove(typeof(T));
+	    }
+
 	    private static void RegisterPlugins(GLTFSettings settings)
 	    {
 		    if (settingsWherePluginsAreRegistered.Contains(settings)) return;
-		    
+
 		    static List<Type> GetTypesDerivedFrom<T>()
 		    {
-#if UNITY_EDITOR
-			    return TypeCache.GetTypesDerivedFrom<T>().ToList();
-#else
 			    var types = new List<Type>();
-			    foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			    try
 			    {
-				    try
-				    {
-					    types.AddRange(assembly.GetTypes().Where(t => !(t is T) && typeof(T).IsAssignableFrom(t)));
-				    }
-				    catch (ReflectionTypeLoadException e)
-				    {
-					    types.AddRange(e.Types);
-				    }
-				    catch (Exception)
-				    {
-					    // ignored
-				    }
+				    types.AddRange(PluginTypes.Where(t => !(t is T) && typeof(T).IsAssignableFrom(t)));
+			    }
+			    catch (ReflectionTypeLoadException e)
+			    {
+				    types.AddRange(e.Types);
+			    }
+			    catch (Exception)
+			    {
+				    // ignored
 			    }
 			    return types;
-#endif
 		    }
 		    
 		    // Initialize
@@ -272,26 +217,13 @@ namespace UnityGLTF
 				    if (pluginType.IsAbstract) continue;
 				    if (plugins.Any(p => p != null && p.GetType() == pluginType))
 					    continue;
-				    
-				    //if (typeof(ScriptableObject).IsAssignableFrom(pluginType))
-				    {
-					    // var newInstance = CreateInstance(Il2CppType.From(pluginType)).TryCast<T>();
-					    var newInstance = Activator.CreateInstance(pluginType) as T;
-					    if (newInstance == null) continue;
 
-					    //newInstance.name = pluginType.Name;
-						//newInstance.hideFlags = HideFlags.HideInHierarchy | HideFlags.HideInInspector;
-					    newInstance.Enabled = newInstance.EnabledByDefault;
-					    
-					    plugins.Add(newInstance);
-#if UNITY_EDITOR
-					    if (AssetDatabase.Contains(settings))
-					    {
-							AssetDatabase.AddObjectToAsset(newInstance, settings);
-							EditorUtility.SetDirty(settings);
-					    }
-#endif
-				    }
+				    var newInstance = Activator.CreateInstance(pluginType) as T;
+				    if (newInstance == null) continue;
+
+				    newInstance.Enabled = newInstance.EnabledByDefault;
+
+				    plugins.Add(newInstance);
 			    }
 		    }
 		    
