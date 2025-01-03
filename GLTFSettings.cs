@@ -168,6 +168,7 @@ namespace UnityGLTF
 		    typeof(BakeParticleSystem),
 		    typeof(MaterialVariantsPlugin),
 		    typeof(TextMeshGameObjectExport),
+		    typeof(HdrpTexImport)
 	    };
 
 	    public static void RegisterPlugin<T>() where T : GLTFPlugin

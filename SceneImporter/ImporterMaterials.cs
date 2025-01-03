@@ -5,12 +5,7 @@ using GLTF.Schema;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
-
-
-
-
-
-
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using RedLoader;
 using UnityEngine;
 using Color = System.Drawing.Color;
@@ -27,14 +22,6 @@ namespace UnityGLTF
 
 			const string specGlossExtName = KHR_materials_pbrSpecularGlossinessExtensionFactory.EXTENSION_NAME;
 			const string unlitExtName = KHR_MaterialsUnlitExtensionFactory.EXTENSION_NAME;
-
-			if (_gltfRoot.ExtensionsUsed != null)
-			{
-				foreach (var s in _gltfRoot.ExtensionsUsed)
-				{
-					RLog.Msg(Color.Magenta, $"Extension used: {s}");
-				}
-			}
 
 			if (_gltfRoot.ExtensionsUsed != null && _gltfRoot.ExtensionsUsed.Contains(specGlossExtName) && def.Extensions != null && def.Extensions.ContainsKey(specGlossExtName))
 			{
@@ -104,8 +91,6 @@ namespace UnityGLTF
 // #endif
 // 				}
 			}
-
-			RLog.Msg(Color.Orange, $"Mapper: {mapper.GetType().Name}");
 
 			void CalculateYOffsetAndScale(TextureId textureId, ExtTextureTransformExtension ext, out Vector2 scale, out Vector2 offset)
 			{
@@ -705,6 +690,42 @@ namespace UnityGLTF
 					uniformMapper.EmissiveFactor = uniformMapper.EmissiveFactor * emissiveExt.emissiveStrength;
 				}
 			}
+			
+			
+			
+			var sonsMapper = mapper as SonsUberMap;
+			if (sonsMapper != null)
+			{
+				Texture2D metalRoughMap = null;
+				Texture2D aoMap = null;
+				Texture2D detailMap = null;
+
+				if (def.PbrMetallicRoughness.MetallicRoughnessTexture != null)
+				{
+					var textureId = def.PbrMetallicRoughness.MetallicRoughnessTexture.Index;
+					await ConstructTexture(textureId.Value, textureId.Id, !KeepCPUCopyOfTexture, true, false);
+					metalRoughMap = _assetCache.TextureCache[textureId.Id].Texture;
+				}
+
+				if (metalRoughMap)
+				{
+					var dest = new Il2CppStructArray<UnityEngine.Color>(metalRoughMap.width * metalRoughMap.height);
+					var metalRoughPx = metalRoughMap.GetPixels();
+					for (int i = 0; i < metalRoughPx.Length; i++)
+					{
+						var p = metalRoughPx[i];
+						dest[i] = new UnityEngine.Color(p.b, 1.0f, 1.0f, 1.0f - p.g);
+					}
+					
+					metalRoughMap.SetPixels(dest);
+					metalRoughMap.Apply();
+
+					sonsMapper.MaskMap = metalRoughMap;
+				}
+			}
+			
+			
+			
 			var vertColorMapper = mapper.Clone();
 			vertColorMapper.VertexColorsEnabled = true;
 

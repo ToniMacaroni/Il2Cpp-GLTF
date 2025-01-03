@@ -2,6 +2,7 @@ using GLTF.Schema;
 using System.Collections.Generic;
 
 using UnityEngine;
+using UnityGLTF.Cache;
 
 namespace UnityGLTF.Plugins
 {
@@ -50,7 +51,7 @@ namespace UnityGLTF.Plugins
 		{
 		}
 
-		public virtual void OnAfterImportTexture(GLTFTexture texture, int textureIndex, Texture textureObject)
+		public virtual void OnAfterImportTexture(GLTFTexture texture, int textureIndex, TextureCacheData tex)
 		{
 		}
 

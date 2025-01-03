@@ -21,6 +21,13 @@ public class SonsUberMap : MetalRoughMap
         get => _material.GetTexture("_NormalMap");
         set => _material.SetTexture("_NormalMap", value);
     }
+    
+    // TODO: Check why the normal map isn't working correctly
+    // public override Texture NormalTexture
+    // {
+    //     get => null;
+    //     set {}
+    // }
 
     public override double NormalTexScale
     {
@@ -38,5 +45,11 @@ public class SonsUberMap : MetalRoughMap
     {
         get => 1;
         set {}
+    }
+
+    public Texture MaskMap
+    {
+        get => _material.GetTexture("_MaskMap");
+        set => _material.SetTexture("_MaskMap", value);
     }
 }

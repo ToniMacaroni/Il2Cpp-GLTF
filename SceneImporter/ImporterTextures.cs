@@ -199,66 +199,14 @@ namespace UnityGLTF
 
 		protected virtual async Task ConstructUnityTexture(Stream stream, bool markGpuOnly, bool isLinear, bool isNormal, GLTFImage image, int imageCacheIndex)
 		{
-			bool convertToDxt5nmFormat = false;
-#if UNITY_EDITOR
-			if (stream is AssetDatabaseStream assetDatabaseStream)
-			{
-				var tx = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>(assetDatabaseStream.AssetUri);
-				progressStatus.TextureLoaded++;
-				progress?.Report(progressStatus);
-				_assetCache.ImageCache[imageCacheIndex] = tx;
-				return;
-			}
-
-			if (isNormal && Context.SourceImporter != null)
-			{
-				BuildTargetGroup activeTargetGroup = BuildPipeline.GetBuildTargetGroup(EditorUserBuildSettings.activeBuildTarget);
-#if UNITY_2023_1_OR_NEWER
-				if (PlayerSettings.GetNormalMapEncoding(NamedBuildTarget.FromBuildTargetGroup(activeTargetGroup)) == NormalMapEncoding.DXT5nm)
-#else				
-				if (PlayerSettings.GetNormalMapEncoding(activeTargetGroup) == NormalMapEncoding.DXT5nm)
-#endif
-				{
-					convertToDxt5nmFormat = true;
-				}
-			}
-
-#endif
+			bool convertToDxt5nmFormat = isNormal && false;
 			Texture2D texture = new Texture2D(4, 4, TextureFormat.RGBA32, GenerateMipMapsForTextures, isLinear);
 			texture.name = string.IsNullOrEmpty(image.Name) ? Path.GetFileNameWithoutExtension(image.Uri) : image.Name;
 			if (string.IsNullOrEmpty(texture.name))
 				texture.name = $"Texture_{imageCacheIndex.ToString()}{EMPTY_TEXTURE_NAME_SUFFIX}";
 
 			var newTextureObject = texture;
-
-#if UNITY_EDITOR
-			var haveRemappedTexture = false;
-			if (Context.SourceImporter != null)
-			{
-				// check for remapping, we don't even need to attempt loading the texture in that case.
-				var externalObjects = Context.SourceImporter.GetExternalObjectMap();
-				var sourceIdentifier = new AssetImporter.SourceAssetIdentifier(texture);
-				externalObjects.TryGetValue(sourceIdentifier, out var o);
-				if (o is Texture2D remappedTexture)
-				{
-					if (remappedTexture)
-					{
-						texture = remappedTexture;
-						haveRemappedTexture = true;
-					}
-					else
-					{
-						Context.SourceImporter.RemoveRemap(sourceIdentifier);
-					}
-				}
-			}
-
-			if (haveRemappedTexture)
-			{
-				// nothing to do here, the texture has already been remapped
-			}
-			else
-#endif
+			
 			if (stream is FileLoader.InvalidStream invalidStream)
 			{
 				// ignore - we still need a valid texture so that we can properly remap
@@ -507,9 +455,6 @@ namespace UnityGLTF
 					}
 				}
 				else
-#if UNITY_EDITOR
-				if (!UnityEditor.AssetDatabase.Contains(source))
-#endif
 				{
 					Texture2D unityTexture;
 					if (!source.isReadable)
@@ -536,15 +481,6 @@ namespace UnityGLTF
 					if (_assetCache.TextureCache[textureIndex].Texture != null) GLTFSceneImporter.Debug.Log(LogType.Assert, $"Texture should not be reset to prevent memory leaks (File: {_gltfFileName})");
 					_assetCache.TextureCache[textureIndex].Texture = unityTexture;
 				}
-#if UNITY_EDITOR
-				else
-				{
-					// don't warn for just filter mode, user choice
-					if (source.wrapModeU != desiredWrapModeS || source.wrapModeV != desiredWrapModeT)
-						Debug.Log(LogType.Warning, ($"Sampler state doesn't match but source texture is non-readable. Results might not be correct if textures are used multiple times with different sampler states. {source.filterMode} == {desiredFilterMode} && {source.wrapModeU} == {desiredWrapModeS} && {source.wrapModeV} == {desiredWrapModeT} (File: {_gltfFileName})"));
-					_assetCache.TextureCache[textureIndex].Texture = source;
-				}
-#endif
 			}
 
 			_assetCache.TextureCache[textureIndex].IsLinear = isLinear;
@@ -552,11 +488,11 @@ namespace UnityGLTF
 
 			try
 			{
-				var tex = _assetCache.TextureCache[textureIndex].Texture;
+				var texCache = _assetCache.TextureCache[textureIndex];
 
 				foreach (var plugin in Context.Plugins)
 				{
-					plugin.OnAfterImportTexture(texture, textureIndex, tex);
+					plugin.OnAfterImportTexture(texture, textureIndex, texCache);
 				}
 			}
 			catch (Exception ex)

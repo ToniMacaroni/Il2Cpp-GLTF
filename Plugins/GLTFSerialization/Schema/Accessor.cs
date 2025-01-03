@@ -1072,7 +1072,7 @@ namespace GLTF.Schema
 
 			if (!normalizeIntValues) maxValue = 1;
 
-			uint stride = (uint)(BufferView.Value.ByteStride > 0 ? BufferView.Value.ByteStride : componentSize * 16);
+			uint stride = BufferView.Value.ByteStride > 0 ? BufferView.Value.ByteStride : componentSize * 16;
 
 			for (uint idx = 0; idx < Count; idx++)
 			{
